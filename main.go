@@ -2,46 +2,48 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
-	"net"
 	"net/http"
-	"os"
 )
 
+const VERSION = "0.0.1"
 const REST_HOST = "http://ip-api.com/json/"
 
 func main() {
-	var host = ""
-	if len(os.Args) >= 2 {
-		host = os.Args[1]
-	} else {
-		host = ""
-	}
-	ip, err := net.ResolveIPAddr("ip4", host)
-	if err == nil {
+	host := flag.String("host", "", "A hostname to query.")
+	version := flag.Bool("V", false, "Show version")
+	flag.Parse()
 
-		url := REST_HOST + ip.String()
-		res, err := http.Get(url)
-		defer res.Body.Close()
+	if *version {
+		fmt.Printf("Version: %s\n", VERSION)
+		return
+	}
+
+	if *host == "" {
+		flag.PrintDefaults()
+		return
+	}
+
+	url := REST_HOST + *host
+	res, err := http.Get(url)
+	defer res.Body.Close()
+
+	if err == nil {
+		wrap := make(map[string]interface{})
+		decoder := json.NewDecoder(res.Body)
+		decoder.Decode(&wrap)
 
 		if err == nil {
-			wrap := make(map[string]interface{})
-			decoder := json.NewDecoder(res.Body)
-			decoder.Decode(&wrap)
-
-			if err == nil {
-				fmt.Printf("IP: %s\n", wrap["query"])
-				fmt.Printf("Country: %s\n", wrap["country"])
-				fmt.Printf("Region: %s\n", wrap["regionName"])
-				fmt.Printf("City: %s\n", wrap["city"])
-				fmt.Printf("ISP: %s\n", wrap["isp"])
-			} else {
-				panic(err)
-			}
-
+			fmt.Printf("IP: %s\n", wrap["query"])
+			fmt.Printf("Country: %s\n", wrap["country"])
+			fmt.Printf("Region: %s\n", wrap["regionName"])
+			fmt.Printf("City: %s\n", wrap["city"])
+			fmt.Printf("ISP: %s\n", wrap["isp"])
 		} else {
 			panic(err)
 		}
+
 	} else {
 		panic(err)
 	}
